@@ -1,11 +1,11 @@
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
-const authRoutes = require('./routes/authRoutes');
-const shortenRoutes = require('./routes/shortenRoutes');
-const analyticsRoutes = require('./routes/analyticsRoutes');
-const clickLogger = require('./routes/clickLogger');
-const client = require('./config/mongoClient');
+const authRoutes = require('./src/routes/authRoutes');
+const shortenRoutes = require('./src/routes/shortenRoutes');
+const analyticsRoutes = require('./src/routes/analyticsRoutes');
+const clickLogger = require('./src/routes/clickLogger');
+const client = require('./src/config/mongoClient');
 const jwt = require('jsonwebtoken');
 const morgan = require('morgan');
 
