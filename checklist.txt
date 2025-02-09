@@ -1,0 +1,41 @@
+### **Project Checklist for URL Shortener API**
+
+✅ **1. User Authentication (Google Sign-In)**  
+- [x] Implement user authentication using Google Sign-In and issue JWT tokens.  
+
+### **Next Steps:**
+
+✅ **2. Create Short URL API:**  
+- [ ] Implement `/api/shorten` to generate short URLs with rate limiting.  
+
+✅ **3. Redirect Short URL API:**  
+- [ ] Implement `/api/shorten/{alias}` to redirect users and log analytics.  
+
+✅ **4. Get URL Analytics API:**  
+- [ ] Retrieve analytics (total clicks, unique users, device data) for specific URLs.  
+
+🔲 **5. Topic-Based Analytics API:**  
+- [ ] Retrieve analytics grouped by specific topics (`/api/analytics/topic/{topic}`).  
+
+🔲 **6. Overall Analytics API:**  
+- [ ] Provide overall analytics for all short URLs created by the user.  
+
+🔲 **7. Caching:**  
+- [ ] Implement Redis caching for quick URL lookups and analytics.  
+
+🔲 **8. Rate Limiting:**  
+- [ ] Restrict API usage to prevent abuse using packages like `express-rate-limit`.  
+
+🔲 **9. Dockerization:**  
+- [ ] Dockerize the application for containerized deployment.  
+
+🔲 **10. Cloud Deployment:**  
+- [ ] Deploy using services like Render, Railway, or AWS.  
+
+🔲 **11. API Documentation:**  
+- [ ] Document endpoints using Swagger/OpenAPI.  
+
+🔲 **12. Unit/Integration Testing:**  
+- [ ] Write tests to validate core functionalities.  
+
+Would you like to start with **step 2 (Create Short URL API)** next? 😊
