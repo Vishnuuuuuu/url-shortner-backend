@@ -1,3 +1,80 @@
+// const express = require('express');
+// const cors = require('cors');
+// require('dotenv').config();
+// const authRoutes = require('./src/routes/authRoutes');
+// const shortenRoutes = require('./src/routes/shortenRoutes');
+// const analyticsRoutes = require('./src/routes/analyticsRoutes');
+// const clickLogger = require('./src/routes/clickLogger');
+// const client = require('./src/config/mongoClient');
+// const jwt = require('jsonwebtoken');
+// const morgan = require('morgan');
+
+// const app = express();
+// app.use(morgan('dev'));  // logs requests to console
+
+// // CORS configuration
+// app.use(cors({ origin: 'http://localhost:3000', methods: ['GET', 'POST'], credentials: true }));
+// app.use(express.json());
+
+// // Connect to MongoDB
+// async function connectToDB() {
+//   try {
+//     await client.connect();
+//     console.log('MongoDB connected successfully');
+//   } catch (error) {
+//     console.error('DB connection error:', error);
+//   }
+// }
+// connectToDB();
+
+// // Routes
+// app.use('/api/auth', authRoutes);
+// app.use('/', shortenRoutes);
+// app.use('/api', analyticsRoutes);
+// app.use('/api', clickLogger);
+
+
+
+// app.get('/api/user', async (req, res) => {
+//   try {
+//     const token = req.headers.authorization?.split(' ')[1];
+//     if (!token) {
+//       return res.status(401).json({ error: 'Authorization token missing' });
+//     }
+
+//     // Verify the token using the secret key
+//     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+//     // Connect to the database and find the user by their Google ID
+//     const db = client.db('url_shortener');
+//     const user = await db.collection('users').findOne({ googleId: decoded.googleId });
+
+//     if (!user) {
+//       return res.status(404).json({ error: 'User not found' });
+//     }
+
+//     // Send only the relevant user details for the profile page
+//     res.status(200).json({
+//       username: user.name || user.username || 'User',  // Fallback in case of missing name
+//       email: user.email,
+//     });
+//   } catch (error) {
+//     console.error('Error fetching user details:', error);
+//     res.status(401).json({ error: 'Unauthorized access', details: error.message });
+//   }
+// });
+
+
+// // Default route for testing the server
+// app.get('/', (req, res) => {
+//   res.send('URL Shortener Backend is running.');
+// });
+
+// const PORT = process.env.PORT || 5000;
+// app.listen(PORT, () => console.log(`Backend server running on port ${PORT}`));
+
+
+// // with redis and rate limiter
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
@@ -6,17 +83,31 @@ const shortenRoutes = require('./src/routes/shortenRoutes');
 const analyticsRoutes = require('./src/routes/analyticsRoutes');
 const clickLogger = require('./src/routes/clickLogger');
 const client = require('./src/config/mongoClient');
+const redisClient = require('./src/config/redisClient');
 const jwt = require('jsonwebtoken');
 const morgan = require('morgan');
+const rateLimit = require('express-rate-limit');
 
 const app = express();
-app.use(morgan('dev'));  // logs requests to console
+
+// Logger to log incoming requests
+app.use(morgan('dev'));
 
 // CORS configuration
 app.use(cors({ origin: 'http://localhost:3000', methods: ['GET', 'POST'], credentials: true }));
 app.use(express.json());
 
-// Connect to MongoDB
+// **Rate Limiting Configuration**
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,  // 15-minute window
+  max: 100,  // Limit each IP to 100 requests per 15 minutes
+  message: { error: 'Too many requests, please try again later.' },
+});
+
+// Apply rate limiting globally to all API routes
+app.use('/api', limiter);
+
+// **Connect to MongoDB**
 async function connectToDB() {
   try {
     await client.connect();
@@ -27,25 +118,41 @@ async function connectToDB() {
 }
 connectToDB();
 
-// Routes
+// **Middleware to Cache Responses Using Redis**
+function cacheMiddleware(req, res, next) {
+  const cacheKey = req.originalUrl;  // Use the requested URL as the cache key
+
+  redisClient.get(cacheKey, (err, data) => {
+    if (err) {
+      console.error('Redis error:', err);
+      return next();  // Proceed without caching if an error occurs
+    }
+
+    if (data) {
+      console.log('Cache hit for:', cacheKey);
+      return res.status(200).json(JSON.parse(data));  // Return cached data
+    }
+
+    console.log('Cache miss for:', cacheKey);
+    next();  // Cache miss, proceed to route handler
+  });
+}
+
+// **Routes**
 app.use('/api/auth', authRoutes);
 app.use('/', shortenRoutes);
 app.use('/api', analyticsRoutes);
 app.use('/api', clickLogger);
 
-
-
-app.get('/api/user', async (req, res) => {
+// **Cache User Data**
+app.get('/api/user', cacheMiddleware, async (req, res) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) {
       return res.status(401).json({ error: 'Authorization token missing' });
     }
 
-    // Verify the token using the secret key
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    // Connect to the database and find the user by their Google ID
     const db = client.db('url_shortener');
     const user = await db.collection('users').findOne({ googleId: decoded.googleId });
 
@@ -53,19 +160,38 @@ app.get('/api/user', async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    // Send only the relevant user details for the profile page
-    res.status(200).json({
-      username: user.name || user.username || 'User',  // Fallback in case of missing name
+    const userDetails = {
+      username: user.name || user.username || 'User',
       email: user.email,
-    });
+    };
+
+    // Cache the user details for 15 minutes
+    redisClient.setEx(`user:${decoded.googleId}`, 900, JSON.stringify(userDetails));
+
+    res.status(200).json(userDetails);
   } catch (error) {
     console.error('Error fetching user details:', error);
     res.status(401).json({ error: 'Unauthorized access', details: error.message });
   }
 });
 
+// **Cache Analytics Example**
+app.get('/api/cache-test', cacheMiddleware, async (req, res) => {
+  // Simulating analytics data for demonstration
+  const data = {
+    alias: 'yt',
+    longUrl: 'https://www.google.com',
+    totalClicks: 5,
+    ipSummary: [{ ip: '192.168.1.1', clicks: 2 }, { ip: '192.168.1.2', clicks: 3 }],
+  };
 
-// Default route for testing the server
+  // Store the response in Redis with a 15-minute expiry time
+  redisClient.setEx(req.originalUrl, 900, JSON.stringify(data));
+
+  res.status(200).json(data);
+});
+
+// **Default route for testing the server**
 app.get('/', (req, res) => {
   res.send('URL Shortener Backend is running.');
 });
