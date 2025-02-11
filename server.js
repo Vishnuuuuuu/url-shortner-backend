@@ -19,7 +19,7 @@ const app = express();
 app.use(morgan('dev'));
 
 const corsOptions = {
-  origin: ['https://your-frontend.vercel.app', 'http://localhost:3000'],
+  origin: ['https://url-shortner-frontend-mocha.vercel.app/', 'http://localhost:3000'],
   credentials: true,
   methods: ['GET', 'POST'],
 };
