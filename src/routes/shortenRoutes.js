@@ -136,7 +136,7 @@ const authToken = require('../middleware/authMiddleware');
 const UAParser = require('ua-parser-js');
 const fetch = require('node-fetch');
 
-const BASE_DOMAIN = process.env.APP_DOMAIN || 'localhost:5000';
+const BASE_DOMAIN = process.env.APP_DOMAIN ;
 
 // Helper function to cache URLs in Redis
 const cacheShortUrl = async (alias, data) => {
