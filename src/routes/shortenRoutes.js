@@ -153,7 +153,7 @@ const cacheShortUrl = async (alias, data) => {
 router.post('/shorten', authToken, async (req, res) => {
   const { longUrl, customAlias, topic } = req.body;
   const alias = customAlias || shortid.generate();
-  const shortUrl = `http://${BASE_DOMAIN}/${alias}`;
+  const shortUrl = `${BASE_DOMAIN}/${alias}`;
 
   try {
     const db = client.db('url_shortener');
