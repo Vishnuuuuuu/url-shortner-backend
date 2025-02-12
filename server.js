@@ -24,6 +24,7 @@ app.use(morgan('dev'));
 const allowedOrigins = [
   'http://localhost:3000', // Local dev
   'https://url-shortner-frontend-mocha.vercel.app', // Deployed frontend
+  'https://url-shortner-backend.up.railway.app', // Ensure backend is allowed too
 ];
 
 const corsOptions = {
