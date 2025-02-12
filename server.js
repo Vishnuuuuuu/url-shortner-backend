@@ -19,29 +19,14 @@ const app = express();
 app.use(morgan('dev'));
 
 
-
-// Allow frontend origin
-const allowedOrigins = [
-  'http://localhost:3000', // Local dev
-  'https://url-shortner-frontend-mocha.vercel.app', // Deployed frontend
-  'https://url-shortner-backend.up.railway.app', // Ensure backend is allowed too
-];
-
 const corsOptions = {
-  origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
+  origin: '*', // Allow all origins temporarily for debugging
   methods: ['GET', 'POST', 'OPTIONS'],
   credentials: true, // Allow cookies and Authorization headers
   allowedHeaders: ['Content-Type', 'Authorization'], // Allow necessary headers
 };
 
 app.use(cors(corsOptions));
-
 
 
 app.use(express.json());
